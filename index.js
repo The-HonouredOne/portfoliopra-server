@@ -17,7 +17,8 @@ app.use(cors({
   origin: [
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://portfoliopra-server.onrender.com"
+    "https://portfoliopra-server.onrender.com",
+    "https://portfoliopraveensir.vercel.app"
   ],
   methods: ["GET", "POST", "DELETE"],
   allowedHeaders: ["Content-Type", "x-admin-key"]
