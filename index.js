@@ -5,19 +5,21 @@ const mongoose = require("mongoose");
 const Brevo = require("@getbrevo/brevo");
 
 const Contact = require("./models/Contact");
+const Experience = require("./models/Experience");
+const FeaturedIn = require("./models/FeaturedIn");
+const SpeakerAt = require("./models/SpeakerAt");
 const upload = require("./middleware/upload");
 const cloudinary = require("./utils/cloudinary");
+const connectDb = require("./config/db");
 
 const app = express();
 
-// ========================
-// ✅ CORS + BODY PARSER
-// ========================
+
 app.use(cors({
   origin: [
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://portfoliopra-server.onrender.com",
+    "http://localhost:8080",
     "https://portfoliopraveensir.vercel.app"
   ],
   methods: ["GET", "POST", "DELETE"],
@@ -27,17 +29,10 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ========================
-// ✅ MONGODB CONNECTION
-// ========================
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB Error:", err));
 
-// ========================
-// ✅ ADMIN AUTH MIDDLEWARE
-// ========================
+connectDb()
+
+//  ADMIN AUTH MIDDLEWARE
 const adminAuth = (req, res, next) => {
   const key = req.headers["x-admin-key"];
   if (!key || key !== process.env.ADMIN_SECRET) {
@@ -46,9 +41,8 @@ const adminAuth = (req, res, next) => {
   next();
 };
 
-// ========================
-// ✅ BREVO EMAIL FUNCTION
-// ========================
+//  BREVO EMAIL FUNCTION
+
 const sendMail = async (to, subject, html) => {
   try {
     const apiInstance = new Brevo.TransactionalEmailsApi();
@@ -72,9 +66,8 @@ const sendMail = async (to, subject, html) => {
   }
 };
 
-// ========================
-// ✅ CONTACT FORM (PUBLIC)
-// ========================
+//  CONTACT FORM (PUBLIC)
+
 app.post("/api/contact", async (req, res) => {
   const { name, email, message } = req.body;
 
@@ -85,10 +78,10 @@ app.post("/api/contact", async (req, res) => {
     });
 
   try {
-    // ✅ Save to DB
+    
     const contact = await Contact.create({ name, email, message });
 
-    // ✅ Mail to Admin
+   
     await sendMail(
       process.env.ADMIN_EMAIL,
       "📩 New Portfolio Contact",
@@ -101,7 +94,7 @@ app.post("/api/contact", async (req, res) => {
       `
     );
 
-    // ✅ Auto Reply to User
+  
     await sendMail(
       email,
       "✅ We Received Your Message",
@@ -129,9 +122,8 @@ app.post("/api/contact", async (req, res) => {
   }
 });
 
-// ========================
-// ✅ GET ALL CONTACTS (ADMIN)
-// ========================
+//  GET ALL CONTACTS (ADMIN)
+
 app.get("/api/contacts", adminAuth, async (req, res) => {
   try {
     const contacts = await Contact.find().sort({ createdAt: -1 });
@@ -144,9 +136,7 @@ app.get("/api/contacts", adminAuth, async (req, res) => {
   }
 });
 
-// ========================
-// ✅ DELETE SINGLE CONTACT (ADMIN)
-// ========================
+//  DELETE SINGLE CONTACT (ADMIN)
 app.delete("/api/contact/:id", adminAuth, async (req, res) => {
   try {
     await Contact.findByIdAndDelete(req.params.id);
@@ -159,9 +149,8 @@ app.delete("/api/contact/:id", adminAuth, async (req, res) => {
   }
 });
 
-// ========================
-// ✅ DELETE ALL CONTACTS (ADMIN)
-// ========================
+//  DELETE ALL CONTACTS (ADMIN)
+
 app.delete("/api/contacts", adminAuth, async (req, res) => {
   try {
     await Contact.deleteMany();
@@ -175,9 +164,7 @@ app.delete("/api/contacts", adminAuth, async (req, res) => {
 });
 
 
-// ========================
-// ✅ IMAGE UPLOAD (ADMIN)
-// ========================
+// IMAGE UPLOAD (ADMIN)
 app.post("/api/upload", adminAuth, upload.single("image"), (req, res) => {
   try {
     res.status(201).json({
@@ -195,9 +182,8 @@ app.post("/api/upload", adminAuth, upload.single("image"), (req, res) => {
   }
 });
 
-// ========================
-// ✅ GET ALL IMAGES FROM CLOUDINARY
-// ========================
+//  GET ALL IMAGES FROM CLOUDINARY
+
 app.get("/api/images", async (req, res) => {
   try {
     const folder = req.query.folder || "company/portfolio";
@@ -233,9 +219,7 @@ app.get("/api/images", async (req, res) => {
   }
 });
 
-// ========================
-// ✅ DELETE IMAGE FROM CLOUDINARY (ADMIN)
-// ========================
+//  DELETE IMAGE FROM CLOUDINARY (ADMIN)
 app.delete("/api/image/:publicId", adminAuth, async (req, res) => {
   try {
     const result = await cloudinary.uploader.destroy(req.params.publicId);
@@ -253,16 +237,124 @@ app.delete("/api/image/:publicId", adminAuth, async (req, res) => {
   }
 });
 
-// ========================
-// ✅ TEST ROUTE
-// ========================
+// EXPERIENCE ROUTES
+// GET ALL EXPERIENCES (PUBLIC)
+app.get("/api/experiences", async (req, res) => {
+  try {
+    const experiences = await Experience.find().sort({ createdAt: -1 });
+    res.json({ success: true, experiences });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch experiences" });
+  }
+});
+
+// ADD EXPERIENCE (ADMIN)
+app.post("/api/experience", adminAuth, async (req, res) => {
+  const { company, position, duration, description, technologies } = req.body;
+  
+  if (!company || !position || !duration || !description) {
+    return res.status(400).json({ success: false, message: "All fields are required" });
+  }
+
+  try {
+    const experience = await Experience.create({ company, position, duration, description, technologies });
+    res.status(201).json({ success: true, experience });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to add experience" });
+  }
+});
+
+// DELETE EXPERIENCE (ADMIN)
+app.delete("/api/experience/:id", adminAuth, async (req, res) => {
+  try {
+    await Experience.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "Experience deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Delete failed" });
+  }
+});
+
+// FEATURED IN ROUTES
+// GET ALL FEATURED IN (PUBLIC)
+app.get("/api/featured", async (req, res) => {
+  try {
+    const featured = await FeaturedIn.find().sort({ createdAt: -1 });
+    res.json({ success: true, featured });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch featured" });
+  }
+});
+
+// ADD FEATURED IN (ADMIN)
+app.post("/api/featured", adminAuth, async (req, res) => {
+  const { name, logo, url } = req.body;
+  
+  if (!name || !logo) {
+    return res.status(400).json({ success: false, message: "Name and logo are required" });
+  }
+
+  try {
+    const featured = await FeaturedIn.create({ name, logo, url });
+    res.status(201).json({ success: true, featured });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to add featured" });
+  }
+});
+
+// DELETE FEATURED IN (ADMIN)
+app.delete("/api/featured/:id", adminAuth, async (req, res) => {
+  try {
+    await FeaturedIn.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "Featured deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Delete failed" });
+  }
+});
+
+// SPEAKER AT ROUTES
+// GET ALL SPEAKER AT (PUBLIC)
+app.get("/api/speaker", async (req, res) => {
+  try {
+    const speaker = await SpeakerAt.find().sort({ createdAt: -1 });
+    res.json({ success: true, speaker });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch speaker" });
+  }
+});
+
+// ADD SPEAKER AT (ADMIN)
+app.post("/api/speaker", adminAuth, async (req, res) => {
+  const { name, logo, url } = req.body;
+  
+  if (!name || !logo) {
+    return res.status(400).json({ success: false, message: "Name and logo are required" });
+  }
+
+  try {
+    const speaker = await SpeakerAt.create({ name, logo, url });
+    res.status(201).json({ success: true, speaker });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to add speaker" });
+  }
+});
+
+// DELETE SPEAKER AT (ADMIN)
+app.delete("/api/speaker/:id", adminAuth, async (req, res) => {
+  try {
+    await SpeakerAt.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "Speaker deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Delete failed" });
+  }
+});
+
+// TEST ROUTE
 app.get("/", (req, res) => {
   res.send("✅ Portfolio Backend Running Successfully...");
 });
 
-// ========================
-// ✅ SERVER
-// ========================
+//  SERVER
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`✅ Server running on port ${PORT}`)
