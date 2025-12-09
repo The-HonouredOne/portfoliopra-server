@@ -5,7 +5,11 @@ const speakerAtSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  logo: {
+  speakerImage: {
+    type: String,
+    required: true,
+  },
+  topic: {
     type: String,
     required: true,
   },

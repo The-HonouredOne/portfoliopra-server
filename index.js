@@ -8,6 +8,8 @@ const Contact = require("./models/Contact");
 const Experience = require("./models/Experience");
 const FeaturedIn = require("./models/FeaturedIn");
 const SpeakerAt = require("./models/SpeakerAt");
+const Review = require("./models/Review");
+const Image = require("./models/Image");
 const upload = require("./middleware/upload");
 const cloudinary = require("./utils/cloudinary");
 const connectDb = require("./config/db");
@@ -165,8 +167,19 @@ app.delete("/api/contacts", adminAuth, async (req, res) => {
 
 
 // IMAGE UPLOAD (ADMIN)
-app.post("/api/upload", adminAuth, upload.single("image"), (req, res) => {
+app.post("/api/upload", adminAuth, upload.single("image"), async (req, res) => {
   try {
+    const { caption } = req.body;
+    const section = req.query.section || "general";
+    
+    if (section === "general" && caption) {
+      await Image.create({
+        url: req.file.path,
+        publicId: req.file.filename,
+        caption
+      });
+    }
+    
     res.status(201).json({
       success: true,
       message: "Image uploaded",
@@ -182,33 +195,21 @@ app.post("/api/upload", adminAuth, upload.single("image"), (req, res) => {
   }
 });
 
-//  GET ALL IMAGES FROM CLOUDINARY
+//  GET ALL IMAGES FROM DATABASE
 
 app.get("/api/images", async (req, res) => {
   try {
-    const folder = req.query.folder || "company/portfolio";
-    const max = Number(req.query.max) || 50;
-
-    const result = await cloudinary.api.resources({
-      type: "upload",
-      prefix: folder,
-      max_results: max,
-      direction: "desc",
-    });
-
-    const images = result.resources.map((img) => ({
-      public_id: img.public_id,
-      url: img.secure_url,
-      format: img.format,
-      width: img.width,
-      height: img.height,
-      created_at: img.created_at,
-    }));
-
+    const images = await Image.find().sort({ createdAt: -1 });
+    
     res.json({
       success: true,
       total: images.length,
-      images,
+      images: images.map(img => ({
+        public_id: img.publicId,
+        url: img.url,
+        caption: img.caption,
+        created_at: img.createdAt
+      }))
     });
   } catch (err) {
     console.error(err);
@@ -219,14 +220,15 @@ app.get("/api/images", async (req, res) => {
   }
 });
 
-//  DELETE IMAGE FROM CLOUDINARY (ADMIN)
+//  DELETE IMAGE FROM CLOUDINARY AND DATABASE (ADMIN)
 app.delete("/api/image/:publicId", adminAuth, async (req, res) => {
   try {
-    const result = await cloudinary.uploader.destroy(req.params.publicId);
+    await cloudinary.uploader.destroy(req.params.publicId);
+    await Image.findOneAndDelete({ publicId: req.params.publicId });
+    
     res.json({
       success: true,
-      message: "Image deleted",
-      result,
+      message: "Image deleted"
     });
   } catch (err) {
     console.error(err);
@@ -324,14 +326,14 @@ app.get("/api/speaker", async (req, res) => {
 
 // ADD SPEAKER AT (ADMIN)
 app.post("/api/speaker", adminAuth, async (req, res) => {
-  const { name, logo, url } = req.body;
+  const { name, speakerImage, topic, url } = req.body;
   
-  if (!name || !logo) {
-    return res.status(400).json({ success: false, message: "Name and logo are required" });
+  if (!name || !speakerImage || !topic) {
+    return res.status(400).json({ success: false, message: "Name, speaker image and topic are required" });
   }
 
   try {
-    const speaker = await SpeakerAt.create({ name, logo, url });
+    const speaker = await SpeakerAt.create({ name, speakerImage, topic, url });
     res.status(201).json({ success: true, speaker });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to add speaker" });
@@ -343,6 +345,43 @@ app.delete("/api/speaker/:id", adminAuth, async (req, res) => {
   try {
     await SpeakerAt.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: "Speaker deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Delete failed" });
+  }
+});
+
+// REVIEW ROUTES
+// GET ALL REVIEWS (PUBLIC)
+app.get("/api/reviews", async (req, res) => {
+  try {
+    const reviews = await Review.find().sort({ createdAt: -1 });
+    res.json({ success: true, reviews });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch reviews" });
+  }
+});
+
+// ADD REVIEW (ADMIN)
+app.post("/api/review", adminAuth, async (req, res) => {
+  const { name, position, company, review, rating, avatar } = req.body;
+  
+  if (!name || !position || !company || !review || !rating) {
+    return res.status(400).json({ success: false, message: "All fields except avatar are required" });
+  }
+
+  try {
+    const newReview = await Review.create({ name, position, company, review, rating, avatar });
+    res.status(201).json({ success: true, review: newReview });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to add review" });
+  }
+});
+
+// DELETE REVIEW (ADMIN)
+app.delete("/api/review/:id", adminAuth, async (req, res) => {
+  try {
+    await Review.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "Review deleted" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Delete failed" });
   }
