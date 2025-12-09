@@ -21,7 +21,7 @@ app.use(cors({
   origin: [
     "http://localhost:3000",
     "http://localhost:5173",
-    "http://localhost:8080",
+    "https://portfoliopra-server.onrender.com",
     "https://portfoliopraveensir.vercel.app"
   ],
   methods: ["GET", "POST", "DELETE"],
@@ -326,14 +326,14 @@ app.get("/api/speaker", async (req, res) => {
 
 // ADD SPEAKER AT (ADMIN)
 app.post("/api/speaker", adminAuth, async (req, res) => {
-  const { name, speakerImage, topic, url } = req.body;
+  const { name, speakerImages, topic, url } = req.body;
   
-  if (!name || !speakerImage || !topic) {
-    return res.status(400).json({ success: false, message: "Name, speaker image and topic are required" });
+  if (!name || !speakerImages || !Array.isArray(speakerImages) || speakerImages.length === 0 || !topic) {
+    return res.status(400).json({ success: false, message: "Name, at least one speaker image and topic are required" });
   }
 
   try {
-    const speaker = await SpeakerAt.create({ name, speakerImage, topic, url });
+    const speaker = await SpeakerAt.create({ name, speakerImages, topic, url });
     res.status(201).json({ success: true, speaker });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to add speaker" });

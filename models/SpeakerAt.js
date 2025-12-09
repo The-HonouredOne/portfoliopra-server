@@ -5,9 +5,10 @@ const speakerAtSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  speakerImage: {
-    type: String,
+  speakerImages: {
+    type: [String],
     required: true,
+    validate: [arr => arr.length > 0, 'At least one image is required']
   },
   topic: {
     type: String,
