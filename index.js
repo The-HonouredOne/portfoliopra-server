@@ -10,7 +10,7 @@ app.use(cors({
   origin: [
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://portfoliopra-server.onrender.com",
+    "http://localhost:8080",
     "https://portfoliopraveensir.vercel.app"
   ],
   methods: ["GET", "POST", "DELETE"],
@@ -25,17 +25,22 @@ app.use(express.urlencoded({ extended: true }));
 connectDb();
 
 // Routes
-app.use("/api/contact", require("./routes/contactRoutes"));
-app.use("/api/contacts", require("./routes/contactRoutes"));
-app.use("/api/images", require("./routes/imageRoutes"));
-app.use("/api/upload", require("./routes/imageRoutes"));
-app.use("/api/image", require("./routes/imageRoutes"));
-app.use("/api/experiences", require("./routes/experienceRoutes"));
-app.use("/api/experience", require("./routes/experienceRoutes"));
-app.use("/api/featured", require("./routes/featuredRoutes"));
-app.use("/api/speaker", require("./routes/speakerRoutes"));
-app.use("/api/reviews", require("./routes/reviewRoutes"));
-app.use("/api/review", require("./routes/reviewRoutes"));
+const contactRoutes = require("./routes/contactRoutes");
+const imageRoutes = require("./routes/imageRoutes");
+const experienceRoutes = require("./routes/experienceRoutes");
+const featuredRoutes = require("./routes/featuredRoutes");
+const speakerRoutes = require("./routes/speakerRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
+
+app.use("/api/contact", contactRoutes);
+app.use("/api/contacts", contactRoutes);
+app.use("/api", imageRoutes);
+app.use("/api/experiences", experienceRoutes);
+app.use("/api/experience", experienceRoutes);
+app.use("/api/featured", featuredRoutes);
+app.use("/api/speaker", speakerRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/review", reviewRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

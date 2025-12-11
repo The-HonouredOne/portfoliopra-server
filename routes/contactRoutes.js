@@ -8,12 +8,12 @@ const {
   deleteAllContacts
 } = require("../controllers/contactController");
 
-// PUBLIC ROUTES
+// Handle /api/contact routes
 router.post("/", createContact);
-
-// ADMIN ROUTES
-router.get("/", adminAuth, getAllContacts);
-router.delete("/all", adminAuth, deleteAllContacts);
 router.delete("/:id", adminAuth, deleteContact);
+
+// Handle /api/contacts routes  
+router.get("/", adminAuth, getAllContacts);
+router.delete("/", adminAuth, deleteAllContacts);
 
 module.exports = router;

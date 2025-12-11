@@ -9,10 +9,10 @@ const {
 } = require("../controllers/imageController");
 
 // PUBLIC ROUTES
-router.get("/", getAllImages);
+router.get("/images", getAllImages);
 
 // ADMIN ROUTES
 router.post("/upload", adminAuth, upload.single("image"), uploadImage);
-router.delete("/:publicId", adminAuth, deleteImage);
+router.delete("/image/:publicId", adminAuth, deleteImage);
 
 module.exports = router;
