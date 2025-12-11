@@ -1,8 +1,8 @@
 const Contact = require("../models/Contact");
-const sendMail = require("../utils/brevo");
+const { sendMail } = require("../utils/brevo");
 
-// CREATE CONTACT
-exports.createContact = async (req, res) => {
+// CREATE CONTACT (PUBLIC)
+const createContact = async (req, res) => {
   const { name, email, message } = req.body;
 
   if (!name || !email || !message)
@@ -14,7 +14,6 @@ exports.createContact = async (req, res) => {
   try {
     const contact = await Contact.create({ name, email, message });
 
-    // Admin Mail
     await sendMail(
       process.env.ADMIN_EMAIL,
       "📩 New Portfolio Contact",
@@ -27,15 +26,16 @@ exports.createContact = async (req, res) => {
       `
     );
 
-    // User Mail
     await sendMail(
       email,
       "✅ We Received Your Message",
       `
         <h3>Hello ${name},</h3>
-        <p>Thank you for contacting me. I will reply shortly.</p>
+        <p>Thank you for contacting me. I have received your message and will reply shortly.</p>
+        <p><b>Your Message:</b></p>
         <blockquote>${message}</blockquote>
-        <p>Regards,<br/>${process.env.ADMIN_EMAIL}</p>
+        <br/>
+        <p>Best Regards,<br/>${process.env.ADMIN_EMAIL}</p>
       `
     );
 
@@ -53,12 +53,12 @@ exports.createContact = async (req, res) => {
   }
 };
 
-// GET ALL CONTACTS
-exports.getContacts = async (req, res) => {
+// GET ALL CONTACTS (ADMIN)
+const getAllContacts = async (req, res) => {
   try {
     const contacts = await Contact.find().sort({ createdAt: -1 });
     res.json({ success: true, contacts });
-  } catch {
+  } catch (err) {
     res.status(500).json({
       success: false,
       message: "Failed to fetch contacts",
@@ -66,12 +66,12 @@ exports.getContacts = async (req, res) => {
   }
 };
 
-// DELETE SINGLE
-exports.deleteContact = async (req, res) => {
+// DELETE SINGLE CONTACT (ADMIN)
+const deleteContact = async (req, res) => {
   try {
     await Contact.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: "Contact deleted" });
-  } catch {
+  } catch (err) {
     res.status(500).json({
       success: false,
       message: "Delete failed",
@@ -79,15 +79,22 @@ exports.deleteContact = async (req, res) => {
   }
 };
 
-// DELETE ALL
-exports.deleteAllContacts = async (req, res) => {
+// DELETE ALL CONTACTS (ADMIN)
+const deleteAllContacts = async (req, res) => {
   try {
     await Contact.deleteMany();
     res.json({ success: true, message: "All contacts deleted" });
-  } catch {
+  } catch (err) {
     res.status(500).json({
       success: false,
       message: "Delete all failed",
     });
   }
+};
+
+module.exports = {
+  createContact,
+  getAllContacts,
+  deleteContact,
+  deleteAllContacts
 };

@@ -1,17 +1,18 @@
 const express = require("express");
 const router = express.Router();
-
+const adminAuth = require("../middleware/adminAuth");
+const upload = require("../middleware/upload");
 const {
   uploadImage,
-  getImages,
-  deleteImage,
+  getAllImages,
+  deleteImage
 } = require("../controllers/imageController");
 
-const upload = require("../middleware/upload");
-const adminAuth = require("../middleware/adminauth");
+// PUBLIC ROUTES
+router.get("/", getAllImages);
 
+// ADMIN ROUTES
 router.post("/upload", adminAuth, upload.single("image"), uploadImage);
-router.get("/images", getImages);
-router.delete("/image/:publicId", adminAuth, deleteImage);
+router.delete("/:publicId", adminAuth, deleteImage);
 
 module.exports = router;

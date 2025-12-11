@@ -1,18 +1,19 @@
 const express = require("express");
 const router = express.Router();
-
+const adminAuth = require("../middleware/adminAuth");
 const {
   createContact,
-  getContacts,
+  getAllContacts,
   deleteContact,
-  deleteAllContacts,
+  deleteAllContacts
 } = require("../controllers/contactController");
 
-const adminAuth = require("../middleware/adminauth");
+// PUBLIC ROUTES
+router.post("/", createContact);
 
-router.post("/contact", createContact);
-router.get("/contacts", adminAuth, getContacts);
-router.delete("/contact/:id", adminAuth, deleteContact);
-router.delete("/contacts", adminAuth, deleteAllContacts);
+// ADMIN ROUTES
+router.get("/", adminAuth, getAllContacts);
+router.delete("/all", adminAuth, deleteAllContacts);
+router.delete("/:id", adminAuth, deleteContact);
 
 module.exports = router;

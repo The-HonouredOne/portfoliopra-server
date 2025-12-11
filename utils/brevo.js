@@ -3,8 +3,7 @@ const Brevo = require("@getbrevo/brevo");
 const sendMail = async (to, subject, html) => {
   try {
     const apiInstance = new Brevo.TransactionalEmailsApi();
-    apiInstance.authentications["apiKey"].apiKey =
-      process.env.BREVO_API_KEY;
+    apiInstance.authentications["apiKey"].apiKey = process.env.BREVO_API_KEY;
 
     const sendSmtpEmail = {
       sender: {
@@ -23,4 +22,4 @@ const sendMail = async (to, subject, html) => {
   }
 };
 
-module.exports = sendMail;
+module.exports = { sendMail };
